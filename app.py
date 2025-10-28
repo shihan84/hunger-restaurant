@@ -380,6 +380,16 @@ class RestaurantApp:
             fg='#bdc3c7'
         )
         hint_label.pack(side='right', padx=10)
+        
+        # Copyright notice with version
+        copyright_label = tk.Label(
+            footer_frame,
+            text="© 2025 Warchaswaa Media Pvt Ltd. All Rights Reserved. | Version 1.2",
+            font=('Arial', 8),
+            bg='#34495e',
+            fg='#bdc3c7'
+        )
+        copyright_label.pack(side='left', padx=10)
     
     def select_category(self, category):
         """Select a category and display its menu items"""
