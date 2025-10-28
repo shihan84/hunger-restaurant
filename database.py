@@ -1,8 +1,29 @@
 import sqlite3
 import os
 import sys
+from datetime import datetime, timedelta
 
 DATABASE_NAME = "restaurant_billing.db"
+
+def get_business_date(dt=None):
+    """Get business date - restaurant closes at 1 AM, so after midnight counts as previous day"""
+    if dt is None:
+        dt = datetime.now()
+    
+    # If time is between 00:00 (midnight) and 01:00 (1 AM), use previous day
+    if dt.hour == 0:
+        # Between midnight and 1 AM
+        return (dt - timedelta(days=1)).date()
+    elif dt.hour == 1 and dt.minute < 60:
+        # During 1 AM hour, still previous day
+        return (dt - timedelta(days=1)).date()
+    else:
+        # Normal day
+        return dt.date()
+
+def get_business_date_string(dt=None):
+    """Get business date as string (YYYY-MM-DD)"""
+    return str(get_business_date(dt))
 
 def get_database_path():
     """Get the database file path, handling both development and compiled environments"""
@@ -66,6 +87,7 @@ def init_database():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             table_number TEXT,
             order_date TEXT NOT NULL,
+            business_date TEXT NOT NULL,
             total_amount REAL NOT NULL,
             gst_amount REAL DEFAULT 0,
             service_charge REAL DEFAULT 0,
@@ -74,6 +96,12 @@ def init_database():
             status TEXT DEFAULT 'active'
         )
     """)
+    
+    # Add business_date column if it doesn't exist (for existing databases)
+    try:
+        cursor.execute("ALTER TABLE orders ADD COLUMN business_date TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
     
     # Create order_items table
     cursor.execute("""

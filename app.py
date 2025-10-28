@@ -15,6 +15,7 @@ import thermal_printer
 import admin_panel
 import inventory_manager
 import accounting
+import sqlite3
 from datetime import datetime
 
 class RestaurantApp:
@@ -102,26 +103,48 @@ class RestaurantApp:
         )
         title_label.pack(side='left', padx=20, pady=20)
         
+        # Right side frame for status buttons
+        status_frame = tk.Frame(header_frame, bg='#2c3e50')
+        status_frame.pack(side='right', padx=20, pady=10)
+        
+        # Check if restaurant is open/closed
+        self.restaurant_open = self.get_restaurant_status()
+        
+        # Open/Close button
+        self.status_btn = tk.Button(
+            status_frame,
+            text="✓ OPEN" if self.restaurant_open else "✗ CLOSED",
+            font=('Arial', 12, 'bold'),
+            bg='#27ae60' if self.restaurant_open else '#e74c3c',
+            fg='white',
+            activebackground='#229954' if self.restaurant_open else '#c0392b',
+            relief='flat',
+            padx=20,
+            pady=5,
+            command=self.toggle_restaurant_status
+        )
+        self.status_btn.pack(side='left', padx=5)
+        
         # Telegram status
         telegram_status = "✓ Telegram Active" if self.telegram_enabled else "Telegram Disabled"
         telegram_label = tk.Label(
-            header_frame,
+            status_frame,
             text=telegram_status,
-            font=('Arial', 12),
+            font=('Arial', 10),
             bg='#2c3e50',
             fg='#3498db' if self.telegram_enabled else '#95a5a6'
         )
-        telegram_label.pack(side='right', padx=20, pady=20)
+        telegram_label.pack(side='left', padx=10)
         
         # Clock
         self.clock_label = tk.Label(
-            header_frame,
+            status_frame,
             text="",
             font=('Arial', 12),
             bg='#2c3e50',
             fg='white'
         )
-        self.clock_label.pack(side='right', padx=20, pady=20)
+        self.clock_label.pack(side='left', padx=10)
         self.update_clock()
     
     def update_clock(self):
@@ -129,6 +152,78 @@ class RestaurantApp:
         current_time = datetime.now().strftime("%H:%M:%S")
         self.clock_label.config(text=current_time)
         self.root.after(1000, self.update_clock)
+    
+    def get_restaurant_status(self):
+        """Check if restaurant is currently open"""
+        conn = database.get_connection()
+        cursor = conn.cursor()
+        
+        # Get latest open/close status from restaurant_status table
+        try:
+            cursor.execute("SELECT is_open FROM restaurant_status ORDER BY timestamp DESC LIMIT 1")
+            result = cursor.fetchone()
+            conn.close()
+            
+            if result:
+                return bool(result[0])
+            else:
+                # Default to open if no status recorded
+                return True
+        except sqlite3.OperationalError:
+            # Table doesn't exist yet
+            conn.close()
+            return True
+    
+    def toggle_restaurant_status(self):
+        """Toggle restaurant open/close status"""
+        # Toggle status
+        self.restaurant_open = not self.restaurant_open
+        
+        # Update database
+        conn = database.get_connection()
+        cursor = conn.cursor()
+        
+        # Create restaurant_status table if it doesn't exist
+        try:
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS restaurant_status (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    is_open INTEGER NOT NULL,
+                    timestamp TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Insert status change
+            cursor.execute("""
+                INSERT INTO restaurant_status (is_open, timestamp)
+                VALUES (?, ?)
+            """, (1 if self.restaurant_open else 0, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            
+            conn.commit()
+        except Exception as e:
+            print(f"Error updating restaurant status: {e}")
+        finally:
+            conn.close()
+        
+        # Update button appearance
+        if self.restaurant_open:
+            self.status_btn.config(
+                text="✓ OPEN",
+                bg='#27ae60',
+                activebackground='#229954'
+            )
+        else:
+            self.status_btn.config(
+                text="✗ CLOSED",
+                bg='#e74c3c',
+                activebackground='#c0392b'
+            )
+        
+        # Show notification
+        messagebox.showinfo(
+            "Restaurant Status",
+            "Restaurant is now " + ("OPEN" if self.restaurant_open else "CLOSED")
+        )
     
     def create_main_content(self):
         """Create main content area with left, center, and right panels"""
@@ -1078,15 +1173,19 @@ class RestaurantApp:
         conn = database.get_connection()
         cursor = conn.cursor()
         
+        # Get business date for restaurant day counting
+        business_date = database.get_business_date_string()
+        
         # Insert order
         cursor.execute("""
             INSERT INTO orders 
-            (table_number, order_date, total_amount, gst_amount, service_charge, 
+            (table_number, order_date, business_date, total_amount, gst_amount, service_charge, 
              discount, final_amount, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             table_number,
             datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            business_date,
             subtotal,
             gst_amount,
             service_charge,
