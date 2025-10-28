@@ -210,7 +210,7 @@ class ThermalPrinter:
             self.p.text('=' * 32 + '\n')
             
             # Feed paper for continuous paper (no cut needed)
-            self.p._raw(b'\x1B\x64\x08')  # ESC d 8 (Feed 8 lines - enough space for tearing)
+            self.p._raw(b'\x1B\x64\x04')  # ESC d 4 (Feed 4 lines - strict as per requirement)
             
             # Get the raw output and send to Windows printer
             # output is a property that returns bytes
