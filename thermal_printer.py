@@ -209,17 +209,20 @@ class ThermalPrinter:
             self.p.text('\n')  # Empty line
             self.p.text('=' * 32 + '\n')
             
-            # Feed paper before cut
-            self.p._raw(b'\x1B\x64\x05')  # ESC d 5 (Feed 5 lines)
+            # Feed paper before cut to ensure bill is fully printed
+            self.p._raw(b'\x1B\x64\x20')  # ESC d 32 (Feed 32 lines - more paper before cut)
             
-            # Try multiple cut commands for compatibility
-            # GS V 1 = Partial cut (1mm left uncut)
-            # GS V 0 = Full cut (complete cut)
-            self.p._raw(b'\x1D\x56\x01')  # GS V 1 (Partial cut)
-            # Also try ESC/POS cut command as backup
-            self.p._raw(b'\x1D\x56\x00')  # GS V 0 (Full cut)
-            # Additional cut command for some printers
+            # Try multiple cut commands for compatibility with maximum force
+            # Use GS V with maximum parameters for full cut
+            self.p._raw(b'\x1D\x56\x00')  # GS V 0 (Full cut - complete cut)
+            self.p._raw(b'\x1D\x56\x01')  # GS V 1 (Partial cut - 1mm uncut) 
+            self.p._raw(b'\x1D\x56\x42\x00')  # GS V B 0 (Full cut with full parameter)
+            # Additional cut commands for different printers
             self.p._raw(b'\x1B\x69')      # ESC i (Cut)
+            self.p._raw(b'\x1D\x56\x48\x00\x50\x00')  # GS V H 0 P 0 (Full cut with position parameter)
+            
+            # Extra paper feed to ensure cut happens
+            self.p._raw(b'\x0A\x0A\x0A')     # Three more line feeds after cut
             
             # Get the raw output and send to Windows printer
             # output is a property that returns bytes
