@@ -1416,6 +1416,7 @@ class AdminPanel:
         """Delete all bills (orders)"""
         from tkinter import messagebox
         import database
+        import telegram_notifier
         
         # Confirm deletion
         confirm = messagebox.askyesno(
@@ -1449,15 +1450,28 @@ class AdminPanel:
             cursor.execute("DELETE FROM order_items")
             cursor.execute("DELETE FROM orders")
             
-            # Reset auto-increment
+            # Reset auto-increment sequences to start from 0
+            cursor.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name = 'orders'")
+            cursor.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name = 'order_items'")
+            
+            # If sequences don't exist, delete them to force reset
             cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('orders', 'order_items')")
             
             conn.commit()
             conn.close()
             
+            # Send Telegram notification
+            try:
+                telegram_notifier.send_telegram_message(
+                    chat_id=None,  # Will use default chat_id from settings
+                    message=f"⚠️ All bills deleted!\n\nDeleted: {count_before} bills\nInvoice numbers reset to start from #00001."
+                )
+            except:
+                pass  # Don't fail if Telegram notification fails
+            
             messagebox.showinfo(
                 "Success", 
-                f"Successfully deleted {count_before} bills.\n\nInvoice numbers will restart from #00001."
+                f"Successfully deleted {count_before} bills.\n\nInvoice numbers reset to start from #00001.\nTelegram notification sent."
             )
             
             # Refresh main app if needed

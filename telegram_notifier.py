@@ -30,7 +30,7 @@ def is_telegram_enabled():
     settings = get_telegram_settings()
     return settings['enabled'] if settings else False
 
-def send_telegram_message(message):
+def send_telegram_message(message, chat_id=None):
     """Send message to Telegram"""
     settings = get_telegram_settings()
     
@@ -38,7 +38,10 @@ def send_telegram_message(message):
         return False
     
     bot_token = settings['bot_token']
-    chat_id = settings['chat_id']
+    
+    # Use provided chat_id or default from settings
+    if not chat_id:
+        chat_id = settings['chat_id']
     
     if not bot_token or not chat_id:
         return False
