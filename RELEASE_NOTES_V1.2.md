@@ -28,12 +28,18 @@
 
 ### Bug Fixes
 
+- **CRITICAL FIX**: Fixed database persistence issue - menu items and all data now save properly in compiled app
 - Fixed search functionality to work across all categories instead of just selected category
 - Improved search result display with category labels
 - Updated paper feed from variable to fixed 4 lines
+- Database now stored in executable directory instead of temp folder for data persistence
 
 ### Technical Changes
 
+- **Updated `database.py` to fix persistence in compiled apps**
+  - Database now stored in executable directory instead of temp folder
+  - Automatically copies database from bundled version on first run
+  - All menu additions, price updates, and settings now persist correctly
 - Updated `thermal_printer.py` to use fixed 4-line feed command
 - Enhanced `apply_search_filter()` to search across all categories
 - Modified search query to include category field in results
