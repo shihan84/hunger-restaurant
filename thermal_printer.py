@@ -60,6 +60,22 @@ class ThermalPrinter:
                     win32print.EndPagePrinter(printer_handle)
                     win32print.EndDocPrinter(printer_handle)
                     
+                    # Force cut after print job - Send cut command in separate job
+                    import time
+                    time.sleep(0.5)  # Wait a bit for previous job to complete
+                    
+                    # Start new job for cut command
+                    cut_job = win32print.StartDocPrinter(printer_handle, 1, ("Cut", None, "RAW"))
+                    win32print.StartPagePrinter(printer_handle)
+                    
+                    # Send multiple cut commands as raw bytes
+                    cut_commands = b'\x1D\x56\x00'  # GS V 0 (Full cut)
+                    cut_arr = array.array('B', cut_commands)
+                    win32print.WritePrinter(printer_handle, cut_arr)
+                    
+                    win32print.EndPagePrinter(printer_handle)
+                    win32print.EndDocPrinter(printer_handle)
+                    
                 finally:
                     win32print.ClosePrinter(printer_handle)
                 
