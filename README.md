@@ -2,7 +2,17 @@
 
 A comprehensive Python Tkinter-based billing software for Indian restaurants with GST support, Telegram notifications, and complete order management.
 
-**License**: Warchaswaa Media Pvt Ltd
+## License
+
+Copyright © 2024 Warchaswaa Media Pvt Ltd. All rights reserved.
+
+This software is proprietary and confidential. Unauthorized copying, modification, distribution, or use of this software, via any medium, is strictly prohibited without the express written permission of Warchaswaa Media Pvt Ltd.
+
+For licensing inquiries, please contact Warchaswaa Media Pvt Ltd.
+
+**License Type**: Proprietary Software License  
+**Owner**: Warchaswaa Media Pvt Ltd  
+**Copyright Year**: 2024
 
 ## Features
 
