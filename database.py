@@ -6,19 +6,17 @@ from datetime import datetime, timedelta
 DATABASE_NAME = "restaurant_billing.db"
 
 def get_business_date(dt=None):
-    """Get business date - restaurant closes at 1 AM, so after midnight counts as previous day"""
+    """Get business date - Business day is 1:00 AM to 1:00 AM (next day)"""
     if dt is None:
         dt = datetime.now()
     
-    # If time is between 00:00 (midnight) and 01:00 (1 AM), use previous day
-    if dt.hour == 0:
-        # Between midnight and 1 AM
-        return (dt - timedelta(days=1)).date()
-    elif dt.hour == 1 and dt.minute < 60:
-        # During 1 AM hour, still previous day
+    # Business day: 1:00 AM to 1:00 AM (next day)
+    # If time is before 1:00 AM (01:00), it counts as previous business day
+    if dt.hour < 1:
+        # Between midnight (00:00) and 1 AM (01:00), use previous day
         return (dt - timedelta(days=1)).date()
     else:
-        # Normal day
+        # From 1:00 AM onwards, use current day
         return dt.date()
 
 def get_business_date_string(dt=None):
