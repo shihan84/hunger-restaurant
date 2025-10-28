@@ -1194,15 +1194,198 @@ class AdminPanel:
         )
         title.pack(pady=20)
         
-        info_label = tk.Label(
-            acc_frame,
-            text="Accounting features coming soon...\n\nAccess via Accounting Module",
-            font=('Arial', 11),
-            bg='white',
-            fg='#7f8c8d',
-            justify='center'
+        # Buttons frame
+        btn_frame = tk.Frame(acc_frame, bg='white')
+        btn_frame.pack(pady=20)
+        
+        # Daily Sales Report button
+        daily_btn = tk.Button(
+            btn_frame,
+            text="Daily Sales Report",
+            font=('Arial', 11, 'bold'),
+            bg='#3498db',
+            fg='white',
+            width=25,
+            command=self.show_daily_sales_report
         )
-        info_label.pack(pady=50)
+        daily_btn.pack(pady=10, padx=10)
+        
+        # Sales Report button
+        sales_btn = tk.Button(
+            btn_frame,
+            text="Sales Report (Custom Date)",
+            font=('Arial', 11, 'bold'),
+            bg='#27ae60',
+            fg='white',
+            width=25,
+            command=self.show_sales_report
+        )
+        sales_btn.pack(pady=10, padx=10)
+        
+        # Profit & Loss button
+        pl_btn = tk.Button(
+            btn_frame,
+            text="Profit & Loss Statement",
+            font=('Arial', 11, 'bold'),
+            bg='#e67e22',
+            fg='white',
+            width=25,
+            command=self.show_profit_loss
+        )
+        pl_btn.pack(pady=10, padx=10)
+        
+        # Balance Sheet button
+        balance_btn = tk.Button(
+            btn_frame,
+            text="Balance Sheet",
+            font=('Arial', 11, 'bold'),
+            bg='#9b59b6',
+            fg='white',
+            width=25,
+            command=self.show_balance_sheet
+        )
+        balance_btn.pack(pady=10, padx=10)
+    
+    def show_daily_sales_report(self):
+        """Show daily sales report"""
+        from datetime import date
+        import accounting
+        from tkinter import scrolledtext
+        
+        report = accounting.AccountingSystem.get_daily_sales_report(date.today())
+        
+        # Create report window
+        report_window = tk.Toplevel(self.admin_window)
+        report_window.title("Daily Sales Report")
+        report_window.geometry("800x600")
+        report_window.configure(bg='white')
+        
+        # Title
+        title = tk.Label(
+            report_window,
+            text=f"Daily Sales Report - {report['date']}",
+            font=('Arial', 14, 'bold'),
+            bg='white',
+            fg='#2c3e50'
+        )
+        title.pack(pady=10)
+        
+        # Report text
+        report_text = scrolledtext.ScrolledText(
+            report_window,
+            font=('Courier', 10),
+            bg='#f8f9fa',
+            wrap='word'
+        )
+        report_text.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        # Format report
+        report_content = f"Daily Sales Report\n"
+        report_content += f"{'='*60}\n\n"
+        report_content += f"Date: {report['date']}\n"
+        report_content += f"Total Orders: {report['total_orders']}\n"
+        report_content += f"Total Sales: ₹{report['total_sales']:.2f}\n"
+        report_content += f"GST: ₹{report['total_gst']:.2f}\n"
+        report_content += f"Service Charge: ₹{report['total_service_charge']:.2f}\n"
+        report_content += f"Final Revenue: ₹{report['total_final']:.2f}\n"
+        
+        report_text.insert('1.0', report_content)
+        report_text.config(state='disabled')
+    
+    def show_sales_report(self):
+        """Show sales report with custom date range"""
+        from tkinter import scrolledtext
+        from datetime import datetime
+        
+        # Create date selection window
+        date_window = tk.Toplevel(self.admin_window)
+        date_window.title("Select Date Range")
+        date_window.geometry("400x200")
+        date_window.configure(bg='white')
+        
+        tk.Label(date_window, text="Start Date (YYYY-MM-DD):", font=('Arial', 11), bg='white').pack(pady=10)
+        start_entry = tk.Entry(date_window, font=('Arial', 11), width=20)
+        start_entry.pack(pady=5)
+        start_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        
+        tk.Label(date_window, text="End Date (YYYY-MM-DD):", font=('Arial', 11), bg='white').pack(pady=10)
+        end_entry = tk.Entry(date_window, font=('Arial', 11), width=20)
+        end_entry.pack(pady=5)
+        end_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        
+        def generate_report():
+            start_date = start_entry.get()
+            end_date = end_entry.get()
+            date_window.destroy()
+            
+            import accounting
+            report = accounting.AccountingSystem.get_sales_report(start_date, end_date)
+            
+            # Show report
+            report_window = tk.Toplevel(self.admin_window)
+            report_window.title(f"Sales Report - {start_date} to {end_date}")
+            report_window.geometry("900x600")
+            report_window.configure(bg='white')
+            
+            title = tk.Label(
+                report_window,
+                text=f"Sales Report - {start_date} to {end_date}",
+                font=('Arial', 14, 'bold'),
+                bg='white',
+                fg='#2c3e50'
+            )
+            title.pack(pady=10)
+            
+            report_text = scrolledtext.ScrolledText(
+                report_window,
+                font=('Courier', 9),
+                bg='#f8f9fa',
+                wrap='word'
+            )
+            report_text.pack(fill='both', expand=True, padx=20, pady=10)
+            
+            # Format report
+            content = f"Sales Report\n{'='*80}\n\n"
+            content += f"Period: {report['period']}\n"
+            content += f"Total Orders: {report['summary']['order_count']}\n"
+            content += f"Total Sales: ₹{report['summary']['total_sales']:.2f}\n"
+            content += f"Total GST: ₹{report['summary']['total_gst']:.2f}\n"
+            content += f"Total Service Charge: ₹{report['summary']['total_service']:.2f}\n"
+            content += f"Total Revenue: ₹{report['summary']['total_revenue']:.2f}\n\n"
+            content += f"{'Order ID':<10}{'Date':<20}{'Table':<10}{'Amount':>15}\n"
+            content += f"{'-'*60}\n"
+            
+            for order in report['orders'][:50]:  # Show first 50 orders
+                order_id, order_date, table, total, gst, service, final, item_count = order
+                content += f"{order_id:<10}{order_date.strftime('%Y-%m-%d %H:%M'):<20}{table or 'Takeaway':<10}{final:>15.2f}\n"
+            
+            report_text.insert('1.0', content)
+            report_text.config(state='disabled')
+        
+        tk.Button(
+            date_window,
+            text="Generate Report",
+            font=('Arial', 11, 'bold'),
+            bg='#27ae60',
+            fg='white',
+            command=generate_report
+        ).pack(pady=20)
+    
+    def show_profit_loss(self):
+        """Show profit & loss statement"""
+        from tkinter import scrolledtext
+        import accounting
+        
+        from tkinter import messagebox
+        messagebox.showinfo("Info", "Profit & Loss statement feature is available in the Accounting module. Use Sales Report for revenue tracking.")
+    
+    def show_balance_sheet(self):
+        """Show balance sheet"""
+        from tkinter import scrolledtext
+        import accounting
+        
+        from tkinter import messagebox
+        messagebox.showinfo("Info", "Balance Sheet feature is available in the Accounting module. Use Sales Report for financial tracking.")
     
     def create_purchase_tab(self, notebook):
         """Create purchase management tab"""
