@@ -8,13 +8,17 @@ def get_database_path():
     """Get the database file path, handling both development and compiled environments"""
     if getattr(sys, 'frozen', False):
         # Running in a PyInstaller bundle
-        base_path = sys._MEIPASS
-        db_path = os.path.join(base_path, DATABASE_NAME)
+        # Always use executable directory for compiled app to ensure data persistence
+        exe_dir = os.path.dirname(sys.executable)
+        db_path = os.path.join(exe_dir, DATABASE_NAME)
         
-        # If database doesn't exist in temp folder, check the executable directory
+        # Create database in executable directory if it doesn't exist
         if not os.path.exists(db_path):
-            exe_dir = os.path.dirname(sys.executable)
-            db_path = os.path.join(exe_dir, DATABASE_NAME)
+            # Try to copy from temp folder if exists
+            temp_db = os.path.join(sys._MEIPASS, DATABASE_NAME)
+            if os.path.exists(temp_db):
+                import shutil
+                shutil.copy2(temp_db, db_path)
     else:
         # Running in development mode
         db_path = DATABASE_NAME
