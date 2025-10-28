@@ -1619,6 +1619,17 @@ class AdminPanel:
             # Delete orders
             cursor.execute(f"DELETE FROM orders WHERE id IN ({placeholders})", tuple(self.selected_bills))
             
+            # Check if all bills are deleted - if yes, reset invoice numbers
+            cursor.execute("SELECT COUNT(*) FROM orders")
+            remaining_bills = cursor.fetchone()[0]
+            
+            if remaining_bills == 0:
+                # Reset auto-increment sequences to start from 0
+                cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('orders', 'order_items')")
+                invoice_reset_msg = "\nInvoice numbers reset to start from #00001."
+            else:
+                invoice_reset_msg = ""
+            
             conn.commit()
             conn.close()
             
@@ -1634,7 +1645,7 @@ class AdminPanel:
             
             messagebox.showinfo(
                 "Success",
-                f"Successfully deleted {count} bill(s).\nTotal amount: ₹{total_amount:.2f}\nTelegram notification sent."
+                f"Successfully deleted {count} bill(s).\nTotal amount: ₹{total_amount:.2f}\nTelegram notification sent.{invoice_reset_msg}"
             )
             
         except Exception as e:
