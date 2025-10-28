@@ -771,53 +771,70 @@ class RestaurantApp:
         payment_frame = tk.Frame(content_frame, bg='white')
         payment_frame.pack(fill='x', pady=10)
         
+        # Add processing flag to prevent double-clicks
+        payment_processing = {'active': False}
+        
         def process_payment(mode):
-            # Save order to database
-            order_id = self.save_order_to_db(table_number, items, subtotal, service_charge, gst_amount, total_amount)
+            # Prevent double-clicks
+            if payment_processing['active']:
+                return
             
-            # Record accounting transaction
-            accounting.AccountingSystem.record_order_transaction(order_id, total_amount, mode)
+            # Set processing flag
+            payment_processing['active'] = True
             
-            # Deduct stock for order
-            success, transaction_summary = inventory_manager.InventoryManager.deduct_order_stock(items)
-            if not success:
-                print(f"Stock deduction warning: {transaction_summary}")
-            
-            # Send Telegram notifications
-            telegram_notifier.send_new_order_notification(
-                order_id, table_number, items, total_amount
-            )
-            telegram_notifier.send_payment_notification(
-                order_id, table_number, total_amount, mode
-            )
-            
-            # Print thermal receipt
             try:
-                printer = thermal_printer.ThermalPrinter(printer_name="POS-58")
-                printer.print_bill(
-                    restaurant_name=self.restaurant_name,
-                    table_number=table_number if table_number else "Takeaway",
-                    items=items,
-                    subtotal=subtotal,
-                    service_charge=service_charge,
-                    gst_amount=gst_amount,
-                    total_amount=total_amount,
-                    order_id=order_id,
-                    date=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
-                    currency=self.currency
+                # Save order to database
+                order_id = self.save_order_to_db(table_number, items, subtotal, service_charge, gst_amount, total_amount)
+            
+                # Record accounting transaction
+                accounting.AccountingSystem.record_order_transaction(order_id, total_amount, mode)
+                
+                # Deduct stock for order
+                success, transaction_summary = inventory_manager.InventoryManager.deduct_order_stock(items)
+                if not success:
+                    print(f"Stock deduction warning: {transaction_summary}")
+                
+                # Send Telegram notifications
+                telegram_notifier.send_new_order_notification(
+                    order_id, table_number, items, total_amount
                 )
+                telegram_notifier.send_payment_notification(
+                    order_id, table_number, total_amount, mode
+                )
+                
+                # Print thermal receipt
+                try:
+                    printer = thermal_printer.ThermalPrinter(printer_name="POS-58")
+                    printer.print_bill(
+                        restaurant_name=self.restaurant_name,
+                        table_number=table_number if table_number else "Takeaway",
+                        items=items,
+                        subtotal=subtotal,
+                        service_charge=service_charge,
+                        gst_amount=gst_amount,
+                        total_amount=total_amount,
+                        order_id=order_id,
+                        date=datetime.now().strftime('%d/%m/%Y %H:%M:%S'),
+                        currency=self.currency
+                    )
+                except Exception as e:
+                    print(f"Print error: {e}")
+                    messagebox.showwarning("Print Error", f"Could not print receipt: {e}")
+                
+                messagebox.showinfo("Success", f"Order #{order_id:03d} processed successfully!")
+                
+                # Clear cart
+                self.order_cart = []
+                self.update_cart_display()
+                
+                # Close bill window
+                bill_window.destroy()
+            
             except Exception as e:
-                print(f"Print error: {e}")
-                messagebox.showwarning("Print Error", f"Could not print receipt: {e}")
-            
-            messagebox.showinfo("Success", f"Order #{order_id:03d} processed successfully!")
-            
-            # Clear cart
-            self.order_cart = []
-            self.update_cart_display()
-            
-            # Close bill window
-            bill_window.destroy()
+                messagebox.showerror("Payment Error", f"Failed to process payment: {str(e)}")
+            finally:
+                # Reset processing flag
+                payment_processing['active'] = False
         
         # Payment mode buttons
         btn_cash = tk.Button(
