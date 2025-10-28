@@ -1283,11 +1283,11 @@ class AdminPanel:
         report_content = f"Daily Sales Report\n"
         report_content += f"{'='*60}\n\n"
         report_content += f"Date: {report['date']}\n"
-        report_content += f"Total Orders: {report['total_orders']}\n"
-        report_content += f"Total Sales: ₹{report['total_sales']:.2f}\n"
-        report_content += f"GST: ₹{report['total_gst']:.2f}\n"
-        report_content += f"Service Charge: ₹{report['total_service_charge']:.2f}\n"
-        report_content += f"Final Revenue: ₹{report['total_final']:.2f}\n"
+        report_content += f"Total Orders: {report.get('order_count', 0)}\n"
+        report_content += f"Total Sales: ₹{report.get('total_sales', 0):.2f}\n"
+        report_content += f"GST: ₹{report.get('total_gst', 0):.2f}\n"
+        report_content += f"Service Charge: ₹{report.get('total_service_charge', 0):.2f}\n"
+        report_content += f"Final Revenue: ₹{report.get('total_revenue', 0):.2f}\n"
         
         report_text.insert('1.0', report_content)
         report_text.config(state='disabled')
@@ -1347,10 +1347,10 @@ class AdminPanel:
             # Format report
             content = f"Sales Report\n{'='*80}\n\n"
             content += f"Period: {report['period']}\n"
-            content += f"Total Orders: {report['summary']['order_count']}\n"
+            content += f"Total Orders: {report['summary']['total_orders']}\n"
             content += f"Total Sales: ₹{report['summary']['total_sales']:.2f}\n"
             content += f"Total GST: ₹{report['summary']['total_gst']:.2f}\n"
-            content += f"Total Service Charge: ₹{report['summary']['total_service']:.2f}\n"
+            content += f"Total Service Charge: ₹{report['summary']['total_service_charge']:.2f}\n"
             content += f"Total Revenue: ₹{report['summary']['total_revenue']:.2f}\n\n"
             content += f"{'Order ID':<10}{'Date':<20}{'Table':<10}{'Amount':>15}\n"
             content += f"{'-'*60}\n"
