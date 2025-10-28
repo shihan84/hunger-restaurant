@@ -60,22 +60,6 @@ class ThermalPrinter:
                     win32print.EndPagePrinter(printer_handle)
                     win32print.EndDocPrinter(printer_handle)
                     
-                    # Force cut after print job - Send cut command in separate job
-                    import time
-                    time.sleep(0.5)  # Wait a bit for previous job to complete
-                    
-                    # Start new job for cut command
-                    cut_job = win32print.StartDocPrinter(printer_handle, 1, ("Cut", None, "RAW"))
-                    win32print.StartPagePrinter(printer_handle)
-                    
-                    # Send multiple cut commands as raw bytes
-                    cut_commands = b'\x1D\x56\x00'  # GS V 0 (Full cut)
-                    cut_arr = array.array('B', cut_commands)
-                    win32print.WritePrinter(printer_handle, cut_arr)
-                    
-                    win32print.EndPagePrinter(printer_handle)
-                    win32print.EndDocPrinter(printer_handle)
-                    
                 finally:
                     win32print.ClosePrinter(printer_handle)
                 
@@ -225,20 +209,8 @@ class ThermalPrinter:
             self.p.text('\n')  # Empty line
             self.p.text('=' * 32 + '\n')
             
-            # Feed paper before cut to ensure bill is fully printed
-            self.p._raw(b'\x1B\x64\x20')  # ESC d 32 (Feed 32 lines - more paper before cut)
-            
-            # Try multiple cut commands for compatibility with maximum force
-            # Use GS V with maximum parameters for full cut
-            self.p._raw(b'\x1D\x56\x00')  # GS V 0 (Full cut - complete cut)
-            self.p._raw(b'\x1D\x56\x01')  # GS V 1 (Partial cut - 1mm uncut) 
-            self.p._raw(b'\x1D\x56\x42\x00')  # GS V B 0 (Full cut with full parameter)
-            # Additional cut commands for different printers
-            self.p._raw(b'\x1B\x69')      # ESC i (Cut)
-            self.p._raw(b'\x1D\x56\x48\x00\x50\x00')  # GS V H 0 P 0 (Full cut with position parameter)
-            
-            # Extra paper feed to ensure cut happens
-            self.p._raw(b'\x0A\x0A\x0A')     # Three more line feeds after cut
+            # Feed paper for continuous paper (no cut needed)
+            self.p._raw(b'\x1B\x64\x08')  # ESC d 8 (Feed 8 lines - enough space for tearing)
             
             # Get the raw output and send to Windows printer
             # output is a property that returns bytes
