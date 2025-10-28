@@ -1,0 +1,13 @@
+HUNGER Family Restaurant - Billing Software
+
+License: Warchaswaa Media Pvt Ltd
+© 2024 HUNGER Family Restaurant. All rights reserved.
+
+This software and associated documentation files (the "Software") are proprietary
+software of Warchaswaa Media Pvt Ltd.
+
+All rights reserved. No part of this Software may be reproduced, distributed, or
+transmitted in any form or by any means, without the prior written permission
+of Warchaswaa Media Pvt Ltd.
+
+For licensing inquiries, please contact Warchaswaa Media Pvt Ltd.
