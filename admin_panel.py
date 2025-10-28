@@ -1254,6 +1254,22 @@ class AdminPanel:
             command=self.show_balance_sheet
         )
         balance_btn.pack(pady=10, padx=10)
+        
+        # Separator
+        separator = tk.Frame(btn_frame, bg='#bdc3c7', height=2)
+        separator.pack(fill='x', pady=20, padx=10)
+        
+        # Delete Bills button
+        delete_btn = tk.Button(
+            btn_frame,
+            text="⚠️ Delete All Bills",
+            font=('Arial', 11, 'bold'),
+            bg='#e74c3c',
+            fg='white',
+            width=25,
+            command=self.delete_all_bills
+        )
+        delete_btn.pack(pady=10, padx=10)
     
     def show_daily_sales_report(self):
         """Show daily sales report"""
@@ -1395,6 +1411,66 @@ class AdminPanel:
         
         from tkinter import messagebox
         messagebox.showinfo("Info", "Balance Sheet feature is available in the Accounting module. Use Sales Report for financial tracking.")
+    
+    def delete_all_bills(self):
+        """Delete all bills (orders)"""
+        from tkinter import messagebox
+        import database
+        
+        # Confirm deletion
+        confirm = messagebox.askyesno(
+            "Delete All Bills", 
+            "Are you sure you want to delete ALL bills?\n\nThis will delete all orders and order items.\nThis action cannot be undone!",
+            icon='warning'
+        )
+        
+        if not confirm:
+            return
+        
+        # Double confirmation
+        confirm2 = messagebox.askyesno(
+            "Final Confirmation", 
+            "This will PERMANENTLY delete all bills.\n\nType 'YES' to confirm this action:",
+            icon='warning'
+        )
+        
+        if not confirm2:
+            return
+        
+        try:
+            conn = database.get_connection()
+            cursor = conn.cursor()
+            
+            # Get count before deletion
+            cursor.execute("SELECT COUNT(*) FROM orders")
+            count_before = cursor.fetchone()[0]
+            
+            # Delete orders and order items
+            cursor.execute("DELETE FROM order_items")
+            cursor.execute("DELETE FROM orders")
+            
+            # Reset auto-increment
+            cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('orders', 'order_items')")
+            
+            conn.commit()
+            conn.close()
+            
+            messagebox.showinfo(
+                "Success", 
+                f"Successfully deleted {count_before} bills.\n\nInvoice numbers will restart from #00001."
+            )
+            
+            # Refresh main app if needed
+            if self.app_instance:
+                self.app_instance.order_cart = []
+                # Reset any cart display
+                try:
+                    self.app_instance.update_cart_display()
+                except:
+                    pass
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to delete bills: {str(e)}")
     
     def create_purchase_tab(self, notebook):
         """Create purchase management tab"""
