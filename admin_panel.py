@@ -585,15 +585,24 @@ class AdminPanel:
                 WHERE name = ? AND category = ?
             """, (single_price, full_price, is_available, item_name, self.category_combo.get()))
             
+            rows_affected = cursor.rowcount
             conn.commit()
             conn.close()
             
-            messagebox.showinfo("Success", f"Price updated for {item_name}")
-            
-            # Reload item details
-            self.load_items_for_category()
-            self.item_combo.set(item_name)
-            self.load_item_details()
+            if rows_affected > 0:
+                messagebox.showinfo("Success", f"Price updated for {item_name}")
+                
+                # Reload item details
+                self.load_items_for_category()
+                self.item_combo.set(item_name)
+                self.load_item_details()
+                
+                # Refresh main app menu
+                if self.app_instance:
+                    self.app_instance.load_categories()
+                    self.app_instance.select_category(self.category_combo.get())
+            else:
+                messagebox.showwarning("No Update", f"No rows updated. Item might not exist in database.")
             
         except ValueError:
             messagebox.showerror("Error", "Please enter valid numbers for prices")
