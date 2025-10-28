@@ -186,6 +186,40 @@ class RestaurantApp:
         )
         menu_frame.pack(side='left', fill='both', expand=True, padx=5)
         
+        # Search box
+        search_frame = tk.Frame(menu_frame, bg='white')
+        search_frame.pack(fill='x', padx=10, pady=5)
+        
+        tk.Label(
+            search_frame,
+            text="🔍 Search:",
+            font=('Arial', 11, 'bold'),
+            bg='white',
+            fg='#2c3e50'
+        ).pack(side='left', padx=5)
+        
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', self.on_search_change)
+        search_entry = tk.Entry(
+            search_frame,
+            textvariable=self.search_var,
+            font=('Arial', 11),
+            width=30
+        )
+        search_entry.pack(side='left', padx=5, fill='x', expand=True)
+        
+        # Clear search button
+        clear_btn = tk.Button(
+            search_frame,
+            text="✕",
+            font=('Arial', 9),
+            bg='#e74c3c',
+            fg='white',
+            width=3,
+            command=lambda: self.search_var.set('')
+        )
+        clear_btn.pack(side='left', padx=2)
+        
         # Canvas with scrollbar for menu items
         canvas = tk.Canvas(menu_frame, bg='white', highlightthickness=0)
         scrollbar = ttk.Scrollbar(menu_frame, orient="vertical", command=canvas.yview)
@@ -522,6 +556,161 @@ class RestaurantApp:
                     bg=bg_color,
                     fg='#7f8c8d'
                 ).pack()
+    
+    def on_search_change(self, *args):
+        """Handle search text change"""
+        if hasattr(self, 'current_category'):
+            self.apply_search_filter()
+    
+    def apply_search_filter(self):
+        """Apply search filter to current category items"""
+        if not hasattr(self, 'search_var'):
+            return
+        
+        search_text = self.search_var.get().lower().strip()
+        
+        # Clear and reload with filter
+        for widget in self.menu_container.winfo_children():
+            widget.destroy()
+        
+        if self.current_category:
+            conn = database.get_connection()
+            cursor = conn.cursor()
+            
+            if search_text:
+                # Search with filter
+                cursor.execute("""
+                    SELECT id, name, price_single, price_full, food_type, is_available
+                    FROM menu_items 
+                    WHERE category = ? AND name LIKE ?
+                    ORDER BY name
+                """, (self.current_category, f'%{search_text}%'))
+            else:
+                # Load all items in category
+                cursor.execute("""
+                    SELECT id, name, price_single, price_full, food_type, is_available
+                    FROM menu_items 
+                    WHERE category = ?
+                    ORDER BY name
+                """, (self.current_category,))
+            
+            items = cursor.fetchall()
+            conn.close()
+            
+            if not items:
+                no_item_label = tk.Label(
+                    self.menu_container,
+                    text="No items found" if search_text else "No items available in this category",
+                    font=('Arial', 12),
+                    bg='white',
+                    fg='#7f8c8d'
+                )
+                no_item_label.grid(row=0, column=0, pady=50)
+                return
+            
+            # Display filtered items
+            for idx, item in enumerate(items):
+                item_id, name, price_single, price_full, food_type, is_available = item
+                
+                available = is_available == 1 and price_single is not None and price_single > 0
+                
+                # Determine background color
+                bg_color = '#ecf0f1'
+                
+                # Create item frame
+                item_frame = tk.Frame(self.menu_container, bg=bg_color, relief='solid', bd=1)
+                row = idx // 3
+                col = idx % 3
+                item_frame.grid(row=row, column=col, padx=5, pady=5, sticky='nsew')
+                
+                # Item name
+                tk.Label(
+                    item_frame,
+                    text=name,
+                    font=('Arial', 10, 'bold'),
+                    bg=bg_color,
+                    fg='#2c3e50',
+                    wraplength=200,
+                    justify='center'
+                ).pack(pady=(10, 5))
+                
+                # Price display
+                if available and price_single is not None:
+                    if price_full:
+                        price_text = f"{self.currency} {price_single:.0f} / {self.currency} {price_full:.0f}"
+                    else:
+                        price_text = f"{self.currency} {price_single:.0f}"
+                    tk.Label(
+                        item_frame,
+                        text=price_text,
+                        font=('Arial', 9),
+                        bg=bg_color,
+                        fg='#27ae60'
+                    ).pack()
+                else:
+                    tk.Label(
+                        item_frame,
+                        text="Price Pending",
+                        font=('Arial', 9, 'italic'),
+                        bg=bg_color,
+                        fg='#7f8c8d'
+                    ).pack()
+                
+                # Add buttons
+                button_frame = tk.Frame(item_frame, bg=bg_color)
+                button_frame.pack(fill='x', padx=10, pady=(0, 10))
+                
+                if available and price_single is not None:
+                    if price_full:
+                        btn_single = tk.Button(
+                            button_frame,
+                            text=f"SINGLE\n{self.currency} {price_single:.0f}",
+                            font=('Arial', 8, 'bold'),
+                            bg='#3498db',
+                            fg='white',
+                            activebackground='#2980b9',
+                            relief='flat',
+                            padx=8,
+                            pady=8,
+                            command=lambda i=item_id, p=price_single, t='single': self.add_to_cart(i, name, p, t)
+                        )
+                        btn_single.pack(side='left', padx=(0, 5), fill='both', expand=True)
+                        
+                        btn_full = tk.Button(
+                            button_frame,
+                            text=f"FULL\n{self.currency} {price_full:.0f}",
+                            font=('Arial', 8, 'bold'),
+                            bg='#27ae60',
+                            fg='white',
+                            activebackground='#229954',
+                            relief='flat',
+                            padx=8,
+                            pady=8,
+                            command=lambda i=item_id, p=price_full, t='full': self.add_to_cart(i, name, p, t)
+                        )
+                        btn_full.pack(side='left', fill='both', expand=True)
+                    else:
+                        btn_add = tk.Button(
+                            button_frame,
+                            text=f"ADD\n{self.currency} {price_single:.0f}",
+                            font=('Arial', 9, 'bold'),
+                            bg='#3498db',
+                            fg='white',
+                            activebackground='#2980b9',
+                            relief='flat',
+                            padx=8,
+                            pady=8,
+                            command=lambda i=item_id, p=price_single, t='single': self.add_to_cart(i, name, p, t)
+                        )
+                        btn_add.pack(fill='x')
+                else:
+                    tk.Label(
+                        button_frame,
+                        text="Not Available",
+                        font=('Arial', 9, 'italic'),
+                        bg=bg_color,
+                        fg='#7f8c8d'
+                    ).pack()
     
     def add_to_cart(self, item_id, name, price, plate_type):
         """Add item to cart"""
