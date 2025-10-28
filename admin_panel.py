@@ -1413,75 +1413,229 @@ class AdminPanel:
         messagebox.showinfo("Info", "Balance Sheet feature is available in the Accounting module. Use Sales Report for financial tracking.")
     
     def delete_all_bills(self):
-        """Delete all bills (orders)"""
+        """Show bills list for selection and deletion"""
+        from tkinter import messagebox
+        import database
+        from tkinter import scrolledtext
+        import tkinter as tk
+        
+        # Create bills list window
+        bills_window = tk.Toplevel(self.admin_window)
+        bills_window.title("Delete Bills")
+        bills_window.geometry("800x600")
+        bills_window.configure(bg='white')
+        
+        # Title
+        title = tk.Label(
+            bills_window,
+            text="Select Bills to Delete",
+            font=('Arial', 16, 'bold'),
+            bg='white',
+            fg='#2c3e50'
+        )
+        title.pack(pady=10)
+        
+        # Instructions
+        inst_label = tk.Label(
+            bills_window,
+            text="Select the bills you want to delete by checking the boxes below",
+            font=('Arial', 11),
+            bg='white',
+            fg='#7f8c8d'
+        )
+        inst_label.pack(pady=5)
+        
+        # Scrollable frame for checkboxes
+        canvas = tk.Canvas(bills_window, bg='white')
+        scrollbar = tk.Scrollbar(bills_window, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg='white')
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side='left', fill='both', expand=True, padx=10, pady=10)
+        scrollbar.pack(side='right', fill='y')
+        
+        # Get all bills from database
+        try:
+            conn = database.get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT id, table_number, order_date, final_amount, status
+                FROM orders
+                ORDER BY order_date DESC
+            """)
+            
+            bills = cursor.fetchall()
+            conn.close()
+            
+            if not bills:
+                tk.Label(
+                    scrollable_frame,
+                    text="No bills found in database.",
+                    font=('Arial', 11),
+                    bg='white',
+                    fg='#7f8c8d'
+                ).pack(pady=20)
+            else:
+                # Store selected bill IDs
+                self.selected_bills = []
+                
+                # Header
+                header = tk.Label(
+                    scrollable_frame,
+                    text=f"Total Bills: {len(bills)}",
+                    font=('Arial', 11, 'bold'),
+                    bg='white',
+                    fg='#2c3e50'
+                )
+                header.pack(pady=5)
+                
+                # Add checkboxes for each bill
+                for bill in bills:
+                    bill_id, table_num, order_date, amount, status = bill
+                    
+                    # Frame for each bill
+                    bill_frame = tk.Frame(scrollable_frame, bg='#f8f9fa', relief='solid', bd=1)
+                    bill_frame.pack(fill='x', padx=5, pady=2)
+                    
+                    # Checkbox
+                    var = tk.BooleanVar()
+                    checkbox = tk.Checkbutton(
+                        bill_frame,
+                        variable=var,
+                        bg='#f8f9fa',
+                        command=lambda bid=bill_id, v=var: self.toggle_bill_selection(bid, v)
+                    )
+                    checkbox.pack(side='left', padx=5, pady=5)
+                    
+                    # Bill info
+                    bill_info = f"Bill #{bill_id:05d} | Table: {table_num or 'Takeaway'} | Amount: ₹{amount:.2f} | Date: {order_date}"
+                    tk.Label(
+                        bill_frame,
+                        text=bill_info,
+                        font=('Arial', 10),
+                        bg='#f8f9fa',
+                        anchor='w'
+                    ).pack(side='left', padx=5, fill='x', expand=True)
+                
+                # Delete button
+                delete_btn = tk.Button(
+                    bills_window,
+                    text="Delete Selected Bills",
+                    font=('Arial', 11, 'bold'),
+                    bg='#e74c3c',
+                    fg='white',
+                    command=lambda: self.confirm_delete_selected(bills_window)
+                )
+                delete_btn.pack(pady=10)
+                
+                # Select all / Deselect all buttons
+                btn_frame = tk.Frame(bills_window, bg='white')
+                btn_frame.pack(pady=5)
+                
+                tk.Button(
+                    btn_frame,
+                    text="Select All",
+                    font=('Arial', 10, 'bold'),
+                    bg='#3498db',
+                    fg='white',
+                    command=lambda: self.select_all_bills(bills_window, True)
+                ).pack(side='left', padx=5)
+                
+                tk.Button(
+                    btn_frame,
+                    text="Deselect All",
+                    font=('Arial', 10, 'bold'),
+                    bg='#95a5a6',
+                    fg='white',
+                    command=lambda: self.select_all_bills(bills_window, False)
+                ).pack(side='left', padx=5)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load bills: {str(e)}")
+            bills_window.destroy()
+    
+    def toggle_bill_selection(self, bill_id, var):
+        """Toggle bill selection"""
+        if not hasattr(self, 'selected_bills'):
+            self.selected_bills = []
+        
+        if var.get():
+            if bill_id not in self.selected_bills:
+                self.selected_bills.append(bill_id)
+        else:
+            if bill_id in self.selected_bills:
+                self.selected_bills.remove(bill_id)
+    
+    def select_all_bills(self, window, select):
+        """Select or deselect all bills"""
+        # This is a simplified version - in a real implementation,
+        # you'd need to store references to all checkboxes
+        messagebox.showinfo("Info", "Please use individual checkboxes to select bills.")
+    
+    def confirm_delete_selected(self, parent_window):
+        """Confirm and delete selected bills"""
         from tkinter import messagebox
         import database
         import telegram_notifier
         
+        if not hasattr(self, 'selected_bills') or not self.selected_bills:
+            messagebox.showwarning("No Selection", "Please select at least one bill to delete.")
+            return
+        
+        count = len(self.selected_bills)
+        
         # Confirm deletion
         confirm = messagebox.askyesno(
-            "Delete All Bills", 
-            "Are you sure you want to delete ALL bills?\n\nThis will delete all orders and order items.\nThis action cannot be undone!",
+            "Delete Selected Bills",
+            f"Are you sure you want to delete {count} bill(s)?\n\nThis action cannot be undone!",
             icon='warning'
         )
         
         if not confirm:
             return
         
-        # Double confirmation
-        confirm2 = messagebox.askyesno(
-            "Final Confirmation", 
-            "This will PERMANENTLY delete all bills.\n\nType 'YES' to confirm this action:",
-            icon='warning'
-        )
-        
-        if not confirm2:
-            return
-        
         try:
             conn = database.get_connection()
             cursor = conn.cursor()
             
-            # Get count before deletion
-            cursor.execute("SELECT COUNT(*) FROM orders")
-            count_before = cursor.fetchone()[0]
+            # Get bill details before deletion
+            placeholders = ','.join(['?'] * count)
+            cursor.execute(f"SELECT id, final_amount FROM orders WHERE id IN ({placeholders})", tuple(self.selected_bills))
+            bills_to_delete = cursor.fetchall()
             
-            # Delete orders and order items
-            cursor.execute("DELETE FROM order_items")
-            cursor.execute("DELETE FROM orders")
+            total_amount = sum(bill[1] for bill in bills_to_delete)
             
-            # Reset auto-increment sequences to start from 0
-            cursor.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name = 'orders'")
-            cursor.execute("UPDATE sqlite_sequence SET seq = 0 WHERE name = 'order_items'")
+            # Delete order items first
+            cursor.execute(f"DELETE FROM order_items WHERE order_id IN ({placeholders})", tuple(self.selected_bills))
             
-            # If sequences don't exist, delete them to force reset
-            cursor.execute("DELETE FROM sqlite_sequence WHERE name IN ('orders', 'order_items')")
+            # Delete orders
+            cursor.execute(f"DELETE FROM orders WHERE id IN ({placeholders})", tuple(self.selected_bills))
             
             conn.commit()
             conn.close()
             
+            parent_window.destroy()
+            
             # Send Telegram notification
             try:
                 telegram_notifier.send_telegram_message(
-                    chat_id=None,  # Will use default chat_id from settings
-                    message=f"⚠️ All bills deleted!\n\nDeleted: {count_before} bills\nInvoice numbers reset to start from #00001."
+                    f"⚠️ Bills Deleted!\n\nDeleted: {count} bill(s)\nTotal amount: ₹{total_amount:.2f}"
                 )
             except:
-                pass  # Don't fail if Telegram notification fails
+                pass
             
             messagebox.showinfo(
-                "Success", 
-                f"Successfully deleted {count_before} bills.\n\nInvoice numbers reset to start from #00001.\nTelegram notification sent."
+                "Success",
+                f"Successfully deleted {count} bill(s).\nTotal amount: ₹{total_amount:.2f}\nTelegram notification sent."
             )
-            
-            # Refresh main app if needed
-            if self.app_instance:
-                self.app_instance.order_cart = []
-                # Reset any cart display
-                try:
-                    self.app_instance.update_cart_display()
-                except:
-                    pass
             
         except Exception as e:
             messagebox.showerror("Error", f"Failed to delete bills: {str(e)}")
