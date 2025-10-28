@@ -385,7 +385,7 @@ class RestaurantApp:
         # Copyright notice with version
         copyright_label = tk.Label(
             footer_frame,
-            text="© 2025 Warchaswaa Media Pvt Ltd. All Rights Reserved. | Version 1.2",
+            text="© 2025 Warchaswaa Media Pvt Ltd. All Rights Reserved. | Version 1.3",
             font=('Arial', 8),
             bg='#34495e',
             fg='#bdc3c7'
