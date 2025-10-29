@@ -527,7 +527,7 @@ class RestaurantApp:
                         relief='flat',
                         padx=8,
                         pady=8,
-                        command=lambda i=item_id, p=price_single, t='single': self.add_to_cart(i, name, p, t)
+                        command=lambda i=item_id, n=name, p=price_single, t='single': self.add_to_cart(i, n, p, t)
                     )
                     btn_single.pack(side='left', padx=(0, 5), fill='both', expand=True)
                     
@@ -541,7 +541,7 @@ class RestaurantApp:
                         relief='flat',
                         padx=8,
                         pady=8,
-                        command=lambda i=item_id, p=price_full, t='full': self.add_to_cart(i, name, p, t)
+                        command=lambda i=item_id, n=name, p=price_full, t='full': self.add_to_cart(i, n, p, t)
                     )
                     btn_full.pack(side='left', fill='both', expand=True)
                 else:
@@ -555,7 +555,7 @@ class RestaurantApp:
                         relief='flat',
                         padx=8,
                         pady=8,
-                        command=lambda i=item_id, p=price_single, t='single': self.add_to_cart(i, name, p, t)
+                        command=lambda i=item_id, n=name, p=price_single, t='single': self.add_to_cart(i, n, p, t)
                     )
                     btn_add.pack(fill='x')
             else:
@@ -690,7 +690,7 @@ class RestaurantApp:
                         relief='flat',
                         padx=8,
                         pady=8,
-                        command=lambda i=item_id, p=price_single, t='single': self.add_to_cart(i, name, p, t)
+                        command=lambda i=item_id, n=name, p=price_single, t='single': self.add_to_cart(i, n, p, t)
                     )
                     btn_single.pack(side='left', padx=(0, 5), fill='both', expand=True)
                     
@@ -704,7 +704,7 @@ class RestaurantApp:
                         relief='flat',
                         padx=8,
                         pady=8,
-                        command=lambda i=item_id, p=price_full, t='full': self.add_to_cart(i, name, p, t)
+                        command=lambda i=item_id, n=name, p=price_full, t='full': self.add_to_cart(i, n, p, t)
                     )
                     btn_full.pack(side='left', fill='both', expand=True)
                 else:
@@ -718,7 +718,7 @@ class RestaurantApp:
                         relief='flat',
                         padx=8,
                         pady=8,
-                        command=lambda i=item_id, p=price_single, t='single': self.add_to_cart(i, name, p, t)
+                        command=lambda i=item_id, n=name, p=price_single, t='single': self.add_to_cart(i, n, p, t)
                     )
                     btn_add.pack(fill='x')
             else:
