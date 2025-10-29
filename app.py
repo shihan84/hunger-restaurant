@@ -396,6 +396,10 @@ class RestaurantApp:
         """Select a category and display its menu items"""
         self.current_category = category
         
+        # Clear any search filter when changing categories
+        if hasattr(self, 'search_var'):
+            self.search_var.set('')
+        
         # Update button states
         for cat, btn in self.category_buttons.items():
             if cat == category:
